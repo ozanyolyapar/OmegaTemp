@@ -1,0 +1,219 @@
+package de.nutco.omegatemp;
+
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
+import android.support.design.widget.Snackbar;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.graphics.ColorUtils;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.view.Window;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.TimeoutError;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+
+import org.json.JSONObject;
+
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.util.Random;
+
+/**
+ * An example full-screen activity that shows and hides the system UI (i.e.
+ * status bar and navigation/system bar) with user interaction.
+ */
+public class anzeigeActivity extends AppCompatActivity {
+    static final String TAG = "ANZEIGE";
+    public String mStatus = "Verbunden.";
+    protected View layout;
+    protected TextView tv_temp;
+    protected TextView tv_hum;
+    protected LinearLayout btn_ref;
+    protected LinearLayout btn_dropup;
+    protected LinearLayout ll_warning;
+    protected Einstellungen einstellungen;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_anzeige);
+
+        layout = findViewById(R.id.fl_main);
+        tv_temp = (TextView) findViewById(R.id.tv_temp);
+        tv_hum = (TextView) findViewById(R.id.tv_hum);
+        btn_ref = (LinearLayout) findViewById(R.id.btn_refresh);
+        btn_dropup = (LinearLayout) findViewById(R.id.btn_dropup);
+        ll_warning = (LinearLayout) findViewById(R.id.ll_warning);
+        einstellungen = new Einstellungen(this);
+
+        httpRequest();
+
+        btn_ref.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                httpRequest();
+            }
+        });
+        btn_dropup.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try{
+                    AlertDialog.Builder builder = new AlertDialog.Builder(anzeigeActivity.this);
+                    builder.setTitle("Na?");
+                    final CharSequence[] dialogItems = new CharSequence[]{"SOCKET", "SERIELL", "INFO", "DEMO", "EINSTELLUNGEN"};
+                    builder.setItems(dialogItems, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            // The 'which' argument contains the index position
+                            // of the selected item
+                            if (dialogItems[which] == "DEMO"){
+                                Random r = new Random();
+                                double rangeMin = 16.0d, rangeMax = 32.0d;
+                                double randomValue = rangeMin + (rangeMax - rangeMin) * r.nextDouble();
+                                setVisuals(randomValue, 10 + (80 - 10) * r.nextDouble());
+                            }else if (dialogItems[which] == "EINSTELLUNGEN"){
+                                einstellungen.showItemsAlert();
+                            }
+                        }
+                    });
+                    AlertDialog dialog = builder.create();
+                    dialog.show();
+                }catch (Exception e){
+                    Log.e("DIALOG_CREATION", e.getMessage(), e);
+                }
+            }
+        });
+    }
+
+    @Override
+    protected void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+    }
+
+    public void httpRequest() {
+        String url = "http://"+einstellungen.getString("url", getString(R.string.url));
+        JsonObjectRequest jsObjRequest = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                try {
+                    resetWarning();
+                    setVisuals(response.getDouble("temperature"), response.getDouble("humidity"));
+                } catch (Exception e) {
+                    Log.e("ANZEIGE", e.getMessage(), e);
+                    warning(e.getMessage());
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.e("REQUEST_ERROR", error.getMessage(), error);
+                String warning = "";
+                if (error instanceof TimeoutError){
+                    warning = "Server reagiert nicht.";
+                }else if(error instanceof com.android.volley.NoConnectionError){
+                    warning = "Keine Verbindung.";
+                }else if(error instanceof com.android.volley.NetworkError){
+                    warning = "Netzwerkfehler.";
+                }else if(error instanceof com.android.volley.ParseError){
+                    warning = "Unerwartete Antwort vom Server.";
+                }else if(error instanceof com.android.volley.VolleyError){
+                    warning = "Folgender Fehler trat bei der Anfrage auf: "+error.getMessage();
+                }else{
+                    warning = "Ein nicht klassifizierbarer Fehler ist aufgetreten. Fehlerbeschreibung: "+error.getMessage();
+                }
+                warning(warning);
+            }
+        });
+        ozansSingleton.getInstance(this).addToRequestQueue(jsObjRequest);
+    }
+
+    protected void setVisuals(double temp, double hum){
+        tv_temp.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_thermometer_white, 0, 0, 0);
+        tv_hum.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_opacity_white_24dp, 0, 0, 0);
+
+        DecimalFormat df = new DecimalFormat("#.##");
+        df.setRoundingMode(RoundingMode.HALF_UP);
+        tv_temp.setText(df.format(temp)+"°C");
+        tv_hum.setText(df.format(hum)+"%");
+        float ratio = (float) ((temp-einstellungen.getInt("mintemp", 16))*(100f/(einstellungen.getInt("maxtemp", 32)-einstellungen.getInt("mintemp", 16))))/100; // ratio zwischen wohlfühltemp.
+        if(ratio>1){ // sicherung, dass ratio nicht kleiner als 0 oder größer als 1 ist..
+            ratio = 1f;
+        }else if(ratio<0){
+            ratio = 0f;
+        }
+        Log.e(TAG, "ratio: "+ratio);
+        int warm = getColor(R.color.warm);
+        int cold = getColor(R.color.cold);
+        float cR = Color.red(warm) * ratio + Color.red(cold) * (1-ratio);
+        float cG = Color.green(warm) * ratio + Color.green(cold) * (1-ratio);
+        float cB = Color.blue(warm) * ratio + Color.blue(cold) * (1-ratio);
+        Log.e(TAG, "cR: "+cR);
+        Log.e(TAG, "cG: "+cG);
+        Log.e(TAG, "cB: "+cB);
+        int maincolor = Color.parseColor(
+                "#"+
+                        Integer.toString(Math.round(cR), 16)+
+                        Integer.toString(Math.round(cG), 16)+
+                        Integer.toString(Math.round(cB), 16)
+        );
+        float[] hsl = {0,0,0};
+        ColorUtils.colorToHSL(maincolor, hsl);
+        hsl[2] = hsl[2]*0.7f;
+        GradientDrawable gd = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[] {maincolor, ColorUtils.HSLToColor(hsl)});
+        gd.setCornerRadius(0f);
+        layout.setBackground(gd);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Window window = getWindow();
+            window.setStatusBarColor(maincolor);
+        }
+        float[] textColor = {0,0,0};
+        ColorUtils.colorToHSL(maincolor, textColor);
+        int winkel = 120; // hue von 120°
+        textColor[0] = textColor[0]-winkel>=0 ? textColor[0]-winkel : 360-(textColor[0]-winkel);
+        textColor[2] = .9f; // light
+        setTextColor(ColorUtils.HSLToColor(textColor));
+    }
+
+    protected void warning(String text){
+        try{
+            layout.setBackground(getDrawable(R.drawable.gradient_warm));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                Window window = getWindow();
+                window.setStatusBarColor(getColor(R.color.warm));
+            }
+            mStatus = text;
+            ll_warning.setVisibility(View.VISIBLE);
+            ll_warning.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Snackbar snackbar = Snackbar.make(view, mStatus, Snackbar.LENGTH_LONG);
+                    snackbar.show();
+                }
+            });
+        }catch (Exception e){
+            Log.e(TAG, e.getMessage(), e);
+        }
+    }
+
+    protected void resetWarning(){
+        ll_warning.setVisibility(View.GONE);
+        mStatus = "";
+    }
+
+    protected void setTextColor(int color){
+        // color is now forced to white...
+        color = Color.WHITE;
+        tv_temp.setTextColor(color);
+        tv_hum.setTextColor(color);
+    }
+}

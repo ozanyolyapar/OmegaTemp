@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">OmegaTemp</string>
+    <string name="url">temp.ozan.rocks/</string>
+</resources>

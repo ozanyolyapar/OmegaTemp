@@ -1,0 +1,125 @@
+<FrameLayout xmlns:app="http://schemas.android.com/apk/res-auto"
+             android:id="@+id/fl_main"
+             xmlns:android="http://schemas.android.com/apk/res/android"
+             xmlns:tools="http://schemas.android.com/tools"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent"
+             android:background="#d7d7d7"
+             android:paddingBottom="10dp"
+             android:paddingLeft="40dp"
+             android:paddingRight="40dp"
+             android:paddingTop="10dp"
+             android:animateLayoutChanges="true"
+             tools:context="de.nutco.omegatemp.anzeigeActivity">
+
+    <!-- The primary full-screen view. This can be replaced with whatever view
+         is needed to present your content, e.g. VideoView, SurfaceView,
+         TextureView, etc. -->
+
+    <!-- This FrameLayout insets its children based on system windows using
+         android:fitsSystemWindows. -->
+
+    <LinearLayout
+        android:id="@+id/ll_warning"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_weight="1"
+        android:background="@drawable/ripple"
+        android:gravity="top"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/img_warning"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight="1"
+            android:scaleType="center"
+            android:src="@drawable/ic_warning_white_24dp">
+
+        </ImageView>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_temp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:paddingLeft="40dp"
+            android:paddingRight="40dp"
+            android:text="No"
+            android:textAlignment="center"
+            android:textSize="30sp"/>
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="20pt"/>
+
+        <TextView
+            android:id="@+id/tv_hum"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:paddingLeft="40dp"
+            android:paddingRight="40dp"
+            android:text="Data"
+            android:textAlignment="center"
+            android:textSize="30sp"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="bottom"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/btn_refresh"
+            android:layout_width="0dp"
+            android:layout_height="40dip"
+            android:layout_weight="1"
+            android:background="@drawable/ripple"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_weight="1"
+                android:scaleType="center"
+                android:src="@drawable/ic_replay_white_24dp">
+
+            </ImageView>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/btn_dropup"
+            android:layout_width="0dp"
+            android:layout_height="40dip"
+            android:layout_weight="1"
+            android:background="@drawable/ripple"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_weight="1"
+                android:scaleType="center"
+                android:src="@drawable/ic_expand_less_white_24dp">
+
+            </ImageView>
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>

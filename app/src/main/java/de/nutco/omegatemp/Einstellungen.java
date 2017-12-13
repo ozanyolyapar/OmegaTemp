@@ -19,6 +19,9 @@ import java.util.Set;
  * Created by ozan on 07.12.2017.
  */
 
+/**
+ * Bootstrap class for making SharedPreferences simpler, just like constant prefs name etc.
+ */
 public class Einstellungen {
     public static final String PREFS_NAME = "OzansTempDingens";
 
@@ -26,6 +29,10 @@ public class Einstellungen {
     public SharedPreferences preferences;
     public static final Map<String, String> fields = new HashMap<>();
 
+    /**
+     * Constructor needs the context parameter to launch alerts.
+     * @param context
+     */
     public Einstellungen(Context context){
         fields.put("url", "Adresse");
         fields.put("socketurl", "Socket-Adresse");
@@ -34,14 +41,22 @@ public class Einstellungen {
         preferences = context.getSharedPreferences(PREFS_NAME, 0);
 
         mContext = context;
-        putInt("mintemp", 16);
-        putInt("maxtemp", 32);
+        // defining standard zeugs
+        putFloat("mintemp", 16.0f);
+        putFloat("maxtemp", 32.0f);
+        // if setting for url is not defined, use the standard thing
+        if (!preferences.contains("url")){
+            putString("url", "temp.ozan.rocks/api.php");
+        }
     }
 
     public void showItemAlert(String key){
 
     }
 
+    /**
+     * Shows the alert dialog for all the settings
+     */
     public void showItemsAlert(){
         AlertDialog.Builder builder = buildTheDialog("Einstellungen");
         LayoutInflater inflater = (LayoutInflater) mContext.getSystemService( Context.LAYOUT_INFLATER_SERVICE );
@@ -49,26 +64,32 @@ public class Einstellungen {
         builder.setView(newLayoutView);
 
         ((EditText) newLayoutView.findViewById(R.id.et_url)).setText(getString("url", "example.com"));
-        ((EditText) newLayoutView.findViewById(R.id.et_socket)).setText(getString("socketurl", "example2.com"));
+//        ((EditText) newLayoutView.findViewById(R.id.et_socket)).setText(getString("socketurl", "example2.com"));
 
         builder.setPositiveButton("Speichern", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 putString("url", ((EditText) newLayoutView.findViewById(R.id.et_url)).getText().toString());
-                putString("socketurl", ((EditText) newLayoutView.findViewById(R.id.et_socket)).getText().toString());
+//                putString("socketurl", ((EditText) newLayoutView.findViewById(R.id.et_socket)).getText().toString());
             }
         });
         showTheDialog(builder);
     }
 
+    /**
+     * Returns a Builder instance to work on.
+     * @param title
+     * @return
+     */
     private AlertDialog.Builder buildTheDialog(String title){
-        AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
-        builder.setTitle(title);
-        return builder;
+        return OzansHelper.createBuilder(mContext, title);
     }
 
+    /**
+     * Shows the given Builder
+     * @param adbuilder
+     */
     private static void showTheDialog(AlertDialog.Builder adbuilder){
-        AlertDialog ad = adbuilder.create();
-        ad.show();
+        OzansHelper.showDialogBuilder(adbuilder);
     }
 
     public void putString(String key, String value){

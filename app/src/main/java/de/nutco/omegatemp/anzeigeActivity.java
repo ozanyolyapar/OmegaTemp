@@ -1,10 +1,14 @@
 package de.nutco.omegatemp;
 
+import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.Build;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
@@ -43,6 +47,9 @@ public class anzeigeActivity extends AppCompatActivity {
     protected LinearLayout btn_dropup;
     protected LinearLayout ll_warning;
     protected Einstellungen einstellungen;
+    private Context mContext;
+    public static anzeigeActivity instance = null;
+    private Verbindung.AnzeigeCallback mAnzeigeCallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,66 +63,17 @@ public class anzeigeActivity extends AppCompatActivity {
         btn_dropup = (LinearLayout) findViewById(R.id.btn_dropup);
         ll_warning = (LinearLayout) findViewById(R.id.ll_warning);
         einstellungen = new Einstellungen(this);
-
-        httpRequest();
-
-        btn_ref.setOnClickListener(new View.OnClickListener() {
+        mContext = getApplicationContext();
+        instance = this;
+        mAnzeigeCallback = new Verbindung.AnzeigeCallback() {
             @Override
-            public void onClick(View view) {
-                httpRequest();
+            public void execute(double temperature, double humidity) {
+                resetWarning();
+                setVisuals(temperature, humidity);
             }
-        });
-        btn_dropup.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                try{
-                    AlertDialog.Builder builder = new AlertDialog.Builder(anzeigeActivity.this);
-                    builder.setTitle("Na?");
-                    final CharSequence[] dialogItems = new CharSequence[]{"SOCKET", "SERIELL", "INFO", "DEMO", "EINSTELLUNGEN"};
-                    builder.setItems(dialogItems, new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int which) {
-                            // The 'which' argument contains the index position
-                            // of the selected item
-                            if (dialogItems[which] == "DEMO"){
-                                Random r = new Random();
-                                double rangeMin = 16.0d, rangeMax = 32.0d;
-                                double randomValue = rangeMin + (rangeMax - rangeMin) * r.nextDouble();
-                                setVisuals(randomValue, 10 + (80 - 10) * r.nextDouble());
-                            }else if (dialogItems[which] == "EINSTELLUNGEN"){
-                                einstellungen.showItemsAlert();
-                            }
-                        }
-                    });
-                    AlertDialog dialog = builder.create();
-                    dialog.show();
-                }catch (Exception e){
-                    Log.e("DIALOG_CREATION", e.getMessage(), e);
-                }
-            }
-        });
-    }
 
-    @Override
-    protected void onPostCreate(Bundle savedInstanceState) {
-        super.onPostCreate(savedInstanceState);
-    }
-
-    public void httpRequest() {
-        String url = "http://"+einstellungen.getString("url", getString(R.string.url));
-        JsonObjectRequest jsObjRequest = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
-            public void onResponse(JSONObject response) {
-                try {
-                    resetWarning();
-                    setVisuals(response.getDouble("temperature"), response.getDouble("humidity"));
-                } catch (Exception e) {
-                    Log.e("ANZEIGE", e.getMessage(), e);
-                    warning(e.getMessage());
-                }
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
+            public void onError(Throwable error) {
                 Log.e("REQUEST_ERROR", error.getMessage(), error);
                 String warning = "";
                 if (error instanceof TimeoutError){
@@ -133,8 +91,101 @@ public class anzeigeActivity extends AppCompatActivity {
                 }
                 warning(warning);
             }
+        };
+
+        httpRequest();
+
+        btn_ref.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                httpRequest();
+            }
         });
-        ozansSingleton.getInstance(this).addToRequestQueue(jsObjRequest);
+        btn_dropup.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try{
+                    AlertDialog.Builder builder = new AlertDialog.Builder(anzeigeActivity.this);
+                    builder.setTitle("Na?");
+                    final CharSequence[] dialogItems = new CharSequence[]{
+//                            "SOCKET",
+//                            "SERIELL",
+                            "Info",
+                            "Testwert",
+                            "Einstellungen"
+                    };
+                    builder.setItems(dialogItems, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            if (dialogItems[which] == "Testwert"){
+                                Random r = new Random();
+                                double rangeMin = (double) einstellungen.getFloat("mintemp", 16.0f);
+                                double rangeMax = (double) einstellungen.getFloat("maxtemp", 32.0f);
+                                double randomValue = rangeMin + (rangeMax - rangeMin) * r.nextDouble();
+                                setVisuals(randomValue, 10 + (80 - 10) * r.nextDouble());
+                            }else if (dialogItems[which] == "Einstellungen"){
+                                einstellungen.showItemsAlert();
+                            }else if (dialogItems[which] == "Info"){
+                                AlertDialog.Builder adbInfo = OzansHelper.createBuilder(anzeigeActivity.this, "Info", "Die Git-Repository beinhaltet alle Informationen, die benötigt werden, um den Server zu konfigurieren.\nDiese App unterliegt den Creative-Commons-Lizenzen CC-BY-NC-ND-4.0.");
+                                adbInfo.setPositiveButton("Projektseite", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        String url = "https://ozan.us/ghaot";
+                                        Intent browse = new Intent(Intent.ACTION_VIEW);
+                                        browse.setData(Uri.parse(url));
+                                        startActivity(browse);
+                                    }
+                                });
+                                adbInfo.setNeutralButton("Lizenz", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        String url = "https://ozan.us/ghaotlic";
+                                        Intent browse = new Intent(Intent.ACTION_VIEW);
+                                        browse.setData(Uri.parse(url));
+                                        startActivity(browse);
+                                    }
+                                });
+                                OzansHelper.showDialogBuilder(adbInfo);
+                            }else if (dialogItems[which] == "SOCKET"){
+                                try{
+                                    SocketVerbindung socketVerbindung = new SocketVerbindung(mContext, btn_ref, mAnzeigeCallback, instance);
+                                    socketVerbindung.execute();
+                                }catch (Exception e){
+                                    warning(e.getMessage());
+                                    Log.e("ANZEIGE_SOCKET", e.getMessage(), e);
+                                }
+                            }
+                        }
+                    });
+                    AlertDialog dialog = builder.create();
+                    dialog.show();
+                }catch (Exception e){
+                    Log.e("DIALOG_CREATION", e.getMessage(), e);
+                }
+            }
+        });
+    }
+
+    @Override
+    protected void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+    }
+
+    @Override
+    public void onResume()
+    {
+        super.onResume();
+        instance = this;
+    }
+
+    @Override
+    public void onPause()
+    {
+        super.onPause();
+        instance = null;
+    }
+
+
+    public void httpRequest() {
+        HttpVerbindung httpVerbindung = new HttpVerbindung(this, btn_ref, mAnzeigeCallback);
+        httpVerbindung.execute();
     }
 
     protected void setVisuals(double temp, double hum){
@@ -145,7 +196,7 @@ public class anzeigeActivity extends AppCompatActivity {
         df.setRoundingMode(RoundingMode.HALF_UP);
         tv_temp.setText(df.format(temp)+"°C");
         tv_hum.setText(df.format(hum)+"%");
-        float ratio = (float) ((temp-einstellungen.getInt("mintemp", 16))*(100f/(einstellungen.getInt("maxtemp", 32)-einstellungen.getInt("mintemp", 16))))/100; // ratio zwischen wohlfühltemp.
+        float ratio = (float) ((temp-einstellungen.getFloat("mintemp", 16))*(100f/(einstellungen.getFloat("maxtemp", 32)-einstellungen.getFloat("mintemp", 16))))/100; // ratio zwischen wohlfühltemp.
         if(ratio>1){ // sicherung, dass ratio nicht kleiner als 0 oder größer als 1 ist..
             ratio = 1f;
         }else if(ratio<0){

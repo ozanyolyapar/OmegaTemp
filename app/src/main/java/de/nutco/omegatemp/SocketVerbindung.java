@@ -30,10 +30,8 @@ import java.net.Socket;
 
 public class SocketVerbindung extends Verbindung{
     SocketClient socketClient;
-    Activity mActivity;
     public SocketVerbindung(Context context, LinearLayout button, AnzeigeCallback anzeigeCallback, Activity activity) {
-        super(context, button, anzeigeCallback);
-        mActivity = activity;
+        super(context, button, anzeigeCallback, activity);
     }
 
     @Override

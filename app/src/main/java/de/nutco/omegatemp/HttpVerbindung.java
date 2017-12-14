@@ -1,5 +1,6 @@
 package de.nutco.omegatemp;
 
+import android.app.Activity;
 import android.content.Context;
 import android.support.design.widget.Snackbar;
 import android.util.Log;
@@ -22,8 +23,9 @@ import static junit.framework.TestSuite.warning;
  */
 
 public class HttpVerbindung extends Verbindung {
-    public HttpVerbindung(Context context, LinearLayout button, AnzeigeCallback anzeigeCallback) {
-        super(context, button, anzeigeCallback);
+
+    public HttpVerbindung(Context context, LinearLayout button, AnzeigeCallback anzeigeCallback, Activity activity) {
+        super(context, button, anzeigeCallback, activity);
     }
 
     @Override
@@ -57,6 +59,7 @@ public class HttpVerbindung extends Verbindung {
         btn_primary.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                einstellungen.putBoolean("autoloadable", false);
                 execute();
             }
         });

@@ -1,5 +1,6 @@
 package de.nutco.omegatemp;
 
+import android.app.Activity;
 import android.content.Context;
 import android.widget.LinearLayout;
 
@@ -17,12 +18,14 @@ public abstract class Verbindung {
     protected AnzeigeCallback mAnzeigeCallback;
     protected Context mContext;
     protected Einstellungen einstellungen;
+    protected Activity mActivity;
 
-    public Verbindung(Context context, LinearLayout button, AnzeigeCallback anzeigeCallback){
+    public Verbindung(Context context, LinearLayout button, AnzeigeCallback anzeigeCallback, Activity activity){
         mContext = context;
         btn_primary = button;
         mAnzeigeCallback = anzeigeCallback;
         einstellungen = new Einstellungen(context);
+        mActivity = activity;
 
         setupButtons();
         try {

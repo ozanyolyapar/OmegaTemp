@@ -10,6 +10,7 @@ import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.graphics.ColorUtils;
@@ -110,6 +111,7 @@ public class anzeigeActivity extends AppCompatActivity {
                     final CharSequence[] dialogItems = new CharSequence[]{
 //                            "SOCKET",
 //                            "SERIELL",
+                            "auto-refresh",
                             "Info",
                             "Testwert",
                             "Einstellungen"
@@ -151,6 +153,23 @@ public class anzeigeActivity extends AppCompatActivity {
                                     warning(e.getMessage());
                                     Log.e("ANZEIGE_SOCKET", e.getMessage(), e);
                                 }
+                            }else if (dialogItems[which] == "auto-refresh"){
+                                try{
+                                    einstellungen.putBoolean("autoloadable", true);
+                                    final Handler handler = new Handler();
+                                    final int delay = 2000;
+
+                                    handler.postDelayed(new Runnable(){
+                                        public void run(){
+                                            httpRequest();
+                                            if (einstellungen.getBoolean("autoloadable", false))
+                                                handler.postDelayed(this, delay);
+                                        }
+                                    }, delay);
+                                }catch (Exception e){
+                                    warning(e.getMessage());
+                                    Log.e("ANZEIGE_SOCKET", e.getMessage(), e);
+                                }
                             }
                         }
                     });
@@ -184,7 +203,7 @@ public class anzeigeActivity extends AppCompatActivity {
 
 
     public void httpRequest() {
-        HttpVerbindung httpVerbindung = new HttpVerbindung(this, btn_ref, mAnzeigeCallback);
+        HttpVerbindung httpVerbindung = new HttpVerbindung(this, btn_ref, mAnzeigeCallback, this);
         httpVerbindung.execute();
     }
 
